@@ -5,7 +5,6 @@ import CharacterAnimation from './CharacterAnimation';
 import { Heart } from 'lucide-react';
 
 const noButtonTexts = [
-  'No',
   'Are you sure?',
   'Really?',
   'Think again!',
@@ -15,18 +14,18 @@ const noButtonTexts = [
   'Oops!',
   'Not this one!',
   'Missed!',
+  'Nice try!',
 ];
 
 const ProposalCard = ({ valentineName, customMessage, characterChoice, onAccept, isPreview = false }) => {
   const [noAttempts, setNoAttempts] = useState(0);
   const [noButtonText, setNoButtonText] = useState('No');
-  const [noButtonPosition, setNoButtonPosition] = useState({ x: 0, y: 0 });
-  const [yesScale, setYesScale] = useState(1);
+  const [noButtonStyle, setNoButtonStyle] = useState({ left: '60%', top: '70px' });
+  const [yesButtonSize, setYesButtonSize] = useState(1);
   const [accepted, setAccepted] = useState(false);
   const [showNoButton, setShowNoButton] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
-  const cardRef = useRef(null);
-  const noButtonRef = useRef(null);
+  const containerRef = useRef(null);
 
   // Detect mobile device
   useEffect(() => {
@@ -46,71 +45,61 @@ const ProposalCard = ({ valentineName, customMessage, characterChoice, onAccept,
     return availableTexts[Math.floor(Math.random() * availableTexts.length)];
   }, [noButtonText]);
 
-  // Move No button to random position within visible bounds
+  // Move No button to random position
   const moveNoButton = useCallback(() => {
-    if (!cardRef.current || noAttempts >= 3) return;
+    if (!containerRef.current || noAttempts >= 3) return;
 
-    const card = cardRef.current.getBoundingClientRect();
-    const buttonWidth = isMobile ? 100 : 120;
-    const buttonHeight = 50;
-    const padding = isMobile ? 15 : 30;
+    const container = containerRef.current.getBoundingClientRect();
+    const maxX = container.width - 120; // button width ~120px
+    const maxY = 150;
 
-    // Calculate bounds based on card size
-    const maxX = Math.min((card.width / 2) - buttonWidth - padding, 150);
-    const maxY = isMobile ? 100 : 150;
+    const randomX = Math.random() * maxX;
+    const randomY = Math.random() * maxY + 60;
 
-    // Generate random position
-    const newX = (Math.random() * maxX * 2) - maxX;
-    const newY = (Math.random() * maxY);
+    setNoButtonStyle({
+      left: `${randomX}px`,
+      top: `${randomY}px`,
+    });
+  }, [noAttempts]);
 
-    setNoButtonPosition({ x: newX, y: newY });
-  }, [noAttempts, isMobile]);
-
-  // Handle all mischievous actions
-  const handleMischief = useCallback((isClick = false) => {
-    if (noAttempts >= 3) return;
-
-    // Always move the button
-    moveNoButton();
-
-    // On click, do additional mischief
-    if (isClick) {
-      const newAttempts = noAttempts + 1;
-      setNoAttempts(newAttempts);
-
-      // Change the text to something funny
-      setNoButtonText(getRandomText());
-
-      // Grow the Yes button by 25%
-      setYesScale(1 + newAttempts * 0.25);
-
-      // Hide after 3 attempts
-      if (newAttempts >= 3) {
-        setTimeout(() => setShowNoButton(false), 400);
-      }
-    }
-  }, [noAttempts, moveNoButton, getRandomText]);
-
-  // Desktop: Move on hover
-  const handleMouseEnter = () => {
-    if (!isMobile) {
-      handleMischief(false);
-    }
-  };
-
-  // Mobile: Move on touch start (before click registers)
-  const handleTouchStart = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // Move immediately on touch
-    handleMischief(false);
-  };
-
-  // Handle actual click/tap
+  // Handle No button click - ALL mischief happens here
   const handleNoClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    handleMischief(true);
+    
+    if (noAttempts >= 3) return;
+
+    const newAttempts = noAttempts + 1;
+    setNoAttempts(newAttempts);
+
+    // 1. THE SWITCH: Change text to something funny
+    setNoButtonText(getRandomText());
+
+    // 2. THE GROWTH: Yes button grows 20% bigger each time
+    setYesButtonSize(1 + (newAttempts * 0.2));
+
+    // 3. THE RUNNER: Move to random position
+    moveNoButton();
+
+    // 4. THE VANISHING ACT: Disappear after 3 attempts
+    if (newAttempts >= 3) {
+      setTimeout(() => setShowNoButton(false), 500);
+    }
+  };
+
+  // Handle hover (desktop) - just move
+  const handleNoHover = () => {
+    if (!isMobile && noAttempts < 3) {
+      moveNoButton();
+    }
+  };
+
+  // Handle touch start (mobile) - move away from finger
+  const handleNoTouch = (e) => {
+    e.preventDefault();
+    if (noAttempts < 3) {
+      moveNoButton();
+    }
   };
 
   const triggerHeartConfetti = () => {
@@ -147,7 +136,6 @@ const ProposalCard = ({ valentineName, customMessage, characterChoice, onAccept,
       }
     };
 
-    // Initial burst
     confetti({
       particleCount: 100,
       spread: 100,
@@ -170,16 +158,15 @@ const ProposalCard = ({ valentineName, customMessage, characterChoice, onAccept,
 
   return (
     <motion.div
-      ref={cardRef}
       initial={{ scale: 0.8, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
-      className={`valentine-card p-6 md:p-12 max-w-md w-full mx-auto text-center relative overflow-visible ${isPreview ? 'shadow-[0_20px_50px_rgba(255,77,109,0.25)]' : ''}`}
-      style={{ minHeight: isMobile ? '480px' : '550px' }}
+      className={`valentine-card p-6 md:p-12 max-w-md w-full mx-auto text-center relative overflow-hidden ${isPreview ? 'shadow-[0_20px_50px_rgba(255,77,109,0.25)]' : ''}`}
+      style={{ minHeight: isMobile ? '520px' : '580px' }}
     >
       {/* Preview Badge */}
       {isPreview && (
-        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-[#FF4D6D] text-white text-xs font-bold px-4 py-1 rounded-full shadow-md">
+        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-[#FF4D6D] text-white text-xs font-bold px-4 py-1 rounded-full shadow-md z-20">
           PREVIEW
         </div>
       )}
@@ -194,14 +181,15 @@ const ProposalCard = ({ valentineName, customMessage, characterChoice, onAccept,
             className="flex flex-col items-center gap-4 md:gap-6"
           >
             {/* Character Animation */}
-            <div className={isMobile ? 'w-40 h-40' : ''}>
+            <div className={isMobile ? 'w-36 h-36' : 'w-48 h-48'}>
               <CharacterAnimation characterType={characterChoice} />
             </div>
 
             {/* Question Text */}
             <div className="space-y-1 md:space-y-2">
               <h1 
-                className="font-heading text-xl md:text-3xl font-bold text-valentine-primary"
+                className="font-heading text-xl md:text-3xl font-bold"
+                style={{ color: '#FF4D6D' }}
                 data-testid="valentine-name-display"
               >
                 {valentineName},
@@ -216,52 +204,64 @@ const ProposalCard = ({ valentineName, customMessage, characterChoice, onAccept,
 
             {/* Buttons Container */}
             <div 
-              className="relative w-full mt-4 md:mt-8 flex flex-col items-center" 
-              style={{ minHeight: isMobile ? '160px' : '180px' }}
+              ref={containerRef}
+              className="relative w-full mt-4 md:mt-6" 
+              style={{ height: isMobile ? '180px' : '200px' }}
             >
-              {/* Yes Button - grows with each No attempt */}
-              <motion.button
-                data-testid="yes-button"
-                onClick={handleYesClick}
-                animate={{ scale: yesScale }}
-                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                className="valentine-btn-yes py-3 px-6 md:px-8 text-base md:text-xl pulse-glow z-10 touch-manipulation"
-                style={{ 
-                  transformOrigin: 'center',
-                  minWidth: isMobile ? '120px' : '140px',
-                }}
-              >
-                Yes! <Heart className="inline ml-1" size={isMobile ? 16 : 20} />
-              </motion.button>
+              {/* Yes Button - GROWS with each No attempt */}
+              <div className="flex justify-center">
+                <motion.button
+                  data-testid="yes-button"
+                  onClick={handleYesClick}
+                  initial={{ scale: 1 }}
+                  animate={{ scale: yesButtonSize }}
+                  transition={{ 
+                    type: 'spring', 
+                    stiffness: 260, 
+                    damping: 20,
+                    duration: 0.5
+                  }}
+                  className="valentine-btn-yes py-3 px-8 md:px-10 text-lg md:text-xl pulse-glow touch-manipulation"
+                  style={{ 
+                    transformOrigin: 'center',
+                    backgroundColor: '#FF4D6D',
+                    color: 'white',
+                    borderRadius: '9999px',
+                    fontWeight: 700,
+                    boxShadow: '0 10px 25px rgba(255, 77, 109, 0.4)',
+                    zIndex: 10,
+                    position: 'relative',
+                  }}
+                >
+                  Yes! <Heart className="inline ml-1" size={isMobile ? 18 : 22} fill="white" />
+                </motion.button>
+              </div>
 
-              {/* No Button - mischievous behavior */}
+              {/* No Button - MOVES, SHRINKS, and DISAPPEARS */}
               <AnimatePresence>
                 {showNoButton && (
                   <motion.button
-                    ref={noButtonRef}
                     data-testid="no-button"
-                    initial={{ opacity: 1 }}
-                    exit={{ opacity: 0, scale: 0, rotate: 180 }}
+                    initial={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0, rotate: 360 }}
                     animate={{ 
-                      x: noButtonPosition.x, 
-                      y: noButtonPosition.y + (isMobile ? 55 : 70),
-                      scale: Math.max(0.6, 1 - noAttempts * 0.1)
+                      scale: Math.max(0.7, 1 - noAttempts * 0.1),
                     }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                     onClick={handleNoClick}
-                    onMouseEnter={handleMouseEnter}
-                    onTouchStart={handleTouchStart}
-                    onTouchMove={(e) => {
-                      e.preventDefault();
-                      handleMischief(false);
-                    }}
-                    className="valentine-btn-no py-2 md:py-3 px-5 md:px-8 text-base md:text-xl absolute touch-manipulation select-none"
+                    onMouseEnter={handleNoHover}
+                    onTouchStart={handleNoTouch}
+                    className="valentine-btn-no py-2 md:py-3 px-6 md:px-8 text-base md:text-lg absolute touch-manipulation select-none"
                     style={{ 
-                      zIndex: 5,
+                      ...noButtonStyle,
+                      backgroundColor: '#FF8FA3',
+                      color: 'white',
+                      borderRadius: '9999px',
+                      fontWeight: 600,
                       cursor: 'pointer',
+                      zIndex: 5,
+                      transition: 'left 0.3s ease-out, top 0.3s ease-out',
                       WebkitTapHighlightColor: 'transparent',
-                      WebkitTouchCallout: 'none',
-                      userSelect: 'none',
                     }}
                   >
                     {noButtonText}
@@ -269,12 +269,12 @@ const ProposalCard = ({ valentineName, customMessage, characterChoice, onAccept,
                 )}
               </AnimatePresence>
 
-              {/* Show hint after No button disappears */}
+              {/* Hint after No button disappears */}
               {!showNoButton && (
                 <motion.p
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-gray-400 text-sm mt-16 md:mt-20 font-body"
+                  className="text-gray-400 text-sm mt-16 text-center font-body"
                 >
                   There's only one choice now... 💕
                 </motion.p>
@@ -302,7 +302,7 @@ const ProposalCard = ({ valentineName, customMessage, characterChoice, onAccept,
             className="flex flex-col items-center gap-4 md:gap-6 py-4 md:py-8"
           >
             {/* Celebration Character */}
-            <div className={isMobile ? 'w-40 h-40' : ''}>
+            <div className={isMobile ? 'w-36 h-36' : 'w-48 h-48'}>
               <CharacterAnimation characterType={characterChoice} />
             </div>
 
@@ -312,10 +312,11 @@ const ProposalCard = ({ valentineName, customMessage, characterChoice, onAccept,
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.2 }}
-                className="font-heading text-2xl md:text-4xl font-extrabold text-valentine-primary"
+                className="font-heading text-2xl md:text-4xl font-extrabold"
+                style={{ color: '#FF4D6D' }}
                 data-testid="success-message"
               >
-                Yay! 
+                Yay! 🎉
               </motion.h1>
               <motion.p
                 initial={{ y: 20, opacity: 0 }}
@@ -331,7 +332,8 @@ const ProposalCard = ({ valentineName, customMessage, characterChoice, onAccept,
                 transition={{ delay: 0.6, type: 'spring' }}
               >
                 <Heart 
-                  className="text-valentine-primary fill-valentine-primary mx-auto" 
+                  className="mx-auto" 
+                  style={{ color: '#FF4D6D', fill: '#FF4D6D' }}
                   size={isMobile ? 60 : 80} 
                 />
               </motion.div>
