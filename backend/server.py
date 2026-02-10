@@ -308,8 +308,11 @@ async def update_proposal(proposal_id: str, update: ProposalUpdate):
     return ProposalResponse(**proposal)
 
 @api_router.get("/proposals", response_model=List[ProposalResponse])
-async def list_proposals():
-    proposals = await db.proposals.find({}, {"_id": 0}).to_list(1000)
+async def list_proposals(page: int = 1, limit: int = 50):
+    """List proposals with pagination"""
+    limit = min(limit, 100)  # Max 100 per page
+    skip = (page - 1) * limit
+    proposals = await db.proposals.find({}, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     return [ProposalResponse(**p) for p in proposals]
 
 # Root endpoint
