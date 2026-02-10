@@ -10,14 +10,14 @@ const characters = {
   },
   bear: {
     name: 'Teddy Bear',
-    lottieUrl: null, // No working lottie, use image
-    fallbackImage: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&h=300&fit=crop',
+    lottieUrl: null,
+    fallbackImage: 'https://images.unsplash.com/photo-1747847386084-2b299514f40c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODd8MHwxfHNlYXJjaHwzfHxjdXRlJTIwdGVkZHklMjBiZWFyJTIwdmFsZW50aW5lJTIwaGVhcnR8ZW58MHx8fHwxNzcwNzQ1MjI2fDA&ixlib=rb-4.1.0&q=85',
     fallbackEmoji: '🧸',
   },
   bunny: {
     name: 'Love Bunny',
-    lottieUrl: null, // No working lottie, use image
-    fallbackImage: 'https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?w=300&h=300&fit=crop',
+    lottieUrl: null,
+    fallbackImage: 'https://images.unsplash.com/photo-1718459782489-5aeeb65522be?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzd8MHwxfHNlYXJjaHwyfHxjdXRlJTIwYnVubnklMjByYWJiaXQlMjB2YWxlbnRpbmV8ZW58MHx8fHwxNzcwNzQ1MjMyfDA&ixlib=rb-4.1.0&q=85',
     fallbackEmoji: '🐰',
   },
 };
