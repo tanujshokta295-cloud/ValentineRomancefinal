@@ -1,0 +1,130 @@
+{
+  "identity": {
+    "name": "E1",
+    "role": "Creative Designer",
+    "mission": "Create a delightful, playful, and memorable Valentine's proposal experience.",
+    "tone": "Cute, Romantic, Mischievous, Soft, Airy"
+  },
+  "design_system": {
+    "typography": {
+      "headings": {
+        "font_family": "Nunito, sans-serif",
+        "weights": ["700", "800"],
+        "usage": "Main titles, 'Will you be my Valentine?', 'Yay!' message",
+        "letter_spacing": "tracking-tight"
+      },
+      "body": {
+        "font_family": "Quicksand, sans-serif",
+        "weights": ["500", "600"],
+        "usage": "Buttons, form labels, small text",
+        "letter_spacing": "tracking-wide"
+      }
+    },
+    "colors": {
+      "palette": {
+        "background": "#FFF0F5",
+        "surface": "#FFFFFF",
+        "primary": "#FF4D6D",
+        "primary_hover": "#FF3355",
+        "secondary": "#FF8FA3",
+        "text_main": "#4A4A4A",
+        "text_muted": "#8A8A8A",
+        "accent_green": "#4ECDC4"
+      },
+      "usage": {
+        "body_bg": "background",
+        "card_bg": "surface",
+        "yes_button": "primary",
+        "no_button": "secondary (initially)",
+        "text": "text_main"
+      }
+    },
+    "spacing": {
+      "container_padding": "p-8 md:p-12",
+      "element_gap": "gap-6",
+      "border_radius": {
+        "card": "rounded-3xl",
+        "button": "rounded-full"
+      }
+    },
+    "shadows": {
+      "card": "shadow-[0_20px_50px_rgba(255,77,109,0.15)]",
+      "button": "shadow-[0_10px_20px_rgba(255,77,109,0.3)]"
+    }
+  },
+  "assets": {
+    "images": [
+      {
+        "category": "character_option_1",
+        "url": "https://images.unsplash.com/photo-1770370358383-e5a0a70b8cc7",
+        "description": "Plush bunny holding a heart",
+        "usage": "Character selection option"
+      },
+      {
+        "category": "character_option_2",
+        "url": "https://images.unsplash.com/photo-1770370358577-ad04179d34ff",
+        "description": "Teddy bear holding a heart",
+        "usage": "Character selection option"
+      },
+      {
+        "category": "character_option_3",
+        "url": "https://images.unsplash.com/photo-1770370358339-909f3173de66",
+        "description": "Teddy bear with 'I love you' heart",
+        "usage": "Character selection option"
+      }
+    ],
+    "lottie_recommendations": [
+      "https://assets10.lottiefiles.com/packages/lf20_jR229r.json (Cute Panda)",
+      "https://assets9.lottiefiles.com/packages/lf20_ot5gqdfc.json (Heart Animation)"
+    ]
+  },
+  "components": {
+    "ProposalCard": {
+      "description": "The main container for the proposal interaction.",
+      "styles": "bg-white rounded-3xl shadow-xl p-8 md:p-12 max-w-md w-full mx-auto text-center relative overflow-hidden border-4 border-white ring-4 ring-pink-100",
+      "animation": "initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.5 }}"
+    },
+    "YesButton": {
+      "description": "The button that triggers the celebration.",
+      "styles": "bg-[#FF4D6D] hover:bg-[#FF3355] text-white font-bold py-3 px-8 rounded-full text-xl transition-all duration-300 transform hover:scale-110 shadow-lg",
+      "behavior": "Grows by 20% on every 'No' click."
+    },
+    "NoButton": {
+      "description": "The mischievous button that evades clicks.",
+      "styles": "bg-[#FF8FA3] hover:bg-[#FF758F] text-white font-bold py-3 px-8 rounded-full text-xl transition-all duration-300 absolute",
+      "behavior": {
+        "hover": "Moves to random position within container bounds",
+        "click": "Changes text ('Are you sure?', 'Really?', 'Think again!'), shrinks slightly",
+        "max_attempts": 3,
+        "final_state": "Disappears completely"
+      }
+    },
+    "FloatingHearts": {
+      "description": "Background animation of rising/floating hearts.",
+      "implementation": "Use framer-motion to animate SVG hearts rising from bottom to top with varying speeds and opacities."
+    }
+  },
+  "layout_strategy": {
+    "home_page": {
+      "structure": "Centered layout. Hero section with a cute character image. Simple form input for 'Valentine's Name' and 'Character Selection'.",
+      "background": "bg-[#FFF0F5] with subtle floating heart pattern."
+    },
+    "proposal_page": {
+      "structure": "Full-screen centered flex container. ProposalCard in the middle.",
+      "elements_order": ["Character Animation (Top)", "Question Text (Middle)", "Button Group (Bottom)"]
+    }
+  },
+  "interactions": {
+    "confetti": "Use 'canvas-confetti' library. Trigger 'schoolPride' or 'hearts' preset on 'Yes' click.",
+    "transitions": "Smooth page transitions using framer-motion AnimatePresence."
+  },
+  "universal_guidelines": [
+    "Do not use generic gradients. Use soft, solid pastel colors.",
+    "Ensure touch targets are large enough (min 44px) for mobile.",
+    "Use 'Nunito' for all headings to maintain the cute aesthetic.",
+    "All interactive elements must have hover states (scale up, brightness up).",
+    "Use 'sonner' for any toast notifications (e.g., 'Link copied!').",
+    "Add data-testid to all buttons and inputs."
+  ],
+  "instructions_to_main_agent": "1. Install 'framer-motion', 'canvas-confetti', 'react-lottie-player', 'lucide-react'. 2. Set up the Tailwind config with the custom colors. 3. Create the 'ProposalCard' component with the 'No' button logic. 4. Implement the 'FloatingHearts' background. 5. Ensure the 'Yes' button grows dynamically based on state."
+}
