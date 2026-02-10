@@ -32,6 +32,17 @@ app = FastAPI()
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# Health check endpoint (required for Kubernetes)
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Kubernetes"""
+    return {"status": "healthy"}
+
+@app.get("/api/health")
+async def api_health_check():
+    """Health check endpoint under /api prefix"""
+    return {"status": "healthy"}
+
 # Define Models
 class ProposalCreate(BaseModel):
     valentine_name: str = Field(..., min_length=1, max_length=100)
