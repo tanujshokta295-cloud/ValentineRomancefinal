@@ -92,14 +92,23 @@ async def get_pricing():
     settings = await db.settings.find_one({"key": "pricing"}, {"_id": 0})
     if not settings:
         # Create default settings
-        settings = {
+        default_settings = {
             "key": "pricing",
             "amount": DEFAULT_PAYMENT_AMOUNT,
             "currency": "INR",
             "display_price": "₹249"
         }
-        await db.settings.insert_one(settings)
-    return settings
+        await db.settings.insert_one(default_settings)
+        return {
+            "amount": DEFAULT_PAYMENT_AMOUNT,
+            "currency": "INR",
+            "display_price": "₹249"
+        }
+    return {
+        "amount": settings.get("amount", DEFAULT_PAYMENT_AMOUNT),
+        "currency": settings.get("currency", "INR"),
+        "display_price": settings.get("display_price", "₹249")
+    }
 
 @api_router.post("/settings/pricing")
 async def update_pricing(amount: int, display_price: str):
@@ -107,7 +116,9 @@ async def update_pricing(amount: int, display_price: str):
     await db.settings.update_one(
         {"key": "pricing"},
         {"$set": {
+            "key": "pricing",
             "amount": amount,
+            "currency": "INR",
             "display_price": display_price,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }},
