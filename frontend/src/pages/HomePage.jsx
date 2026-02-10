@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -30,9 +30,6 @@ const characterOptions = [
   },
 ];
 
-const PRICE_INR = 249;
-const PRICE_DISPLAY = "₹249";
-
 // Load Razorpay script dynamically
 const loadRazorpayScript = () => {
   return new Promise((resolve) => {
@@ -49,6 +46,9 @@ const loadRazorpayScript = () => {
 };
 
 const HomePage = () => {
+  // Pricing state - fetched from backend
+  const [pricing, setPricing] = useState({ amount: 24900, display_price: '₹249' });
+  
   // Form state
   const [valentineName, setValentineName] = useState('');
   const [customMessage, setCustomMessage] = useState('');
@@ -58,6 +58,22 @@ const HomePage = () => {
   const [step, setStep] = useState('form'); // 'form' | 'preview' | 'success'
   const [generatedLink, setGeneratedLink] = useState('');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  // Fetch pricing on mount
+  useEffect(() => {
+    const fetchPricing = async () => {
+      try {
+        const response = await axios.get(`${API}/settings/pricing`);
+        setPricing({
+          amount: response.data.amount,
+          display_price: response.data.display_price
+        });
+      } catch (error) {
+        console.log('Using default pricing');
+      }
+    };
+    fetchPricing();
+  }, []);
 
   const handlePreview = (e) => {
     e.preventDefault();
