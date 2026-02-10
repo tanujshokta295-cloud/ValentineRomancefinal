@@ -9,16 +9,16 @@ const characters = {
     fallbackEmoji: '🐼',
   },
   bear: {
-    name: 'Teddy Bear',
+    name: 'Couple Teddy',
     lottieUrl: null,
-    fallbackImage: 'https://images.unsplash.com/photo-1747847386084-2b299514f40c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODd8MHwxfHNlYXJjaHwzfHxjdXRlJTIwdGVkZHklMjBiZWFyJTIwdmFsZW50aW5lJTIwaGVhcnR8ZW58MHx8fHwxNzcwNzQ1MjI2fDA&ixlib=rb-4.1.0&q=85',
+    fallbackImage: 'https://customer-assets.emergentagent.com/job_cutematch-1/artifacts/ur3y0r94_couple-teddy-4096926_1280.jpg',
     fallbackEmoji: '🧸',
   },
-  bunny: {
-    name: 'Love Bunny',
+  seal: {
+    name: 'Sappy Seals',
     lottieUrl: null,
-    fallbackImage: 'https://images.unsplash.com/photo-1718459782489-5aeeb65522be?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzd8MHwxfHNlYXJjaHwyfHxjdXRlJTIwYnVubnklMjByYWJiaXQlMjB2YWxlbnRpbmV8ZW58MHx8fHwxNzcwNzQ1MjMyfDA&ixlib=rb-4.1.0&q=85',
-    fallbackEmoji: '🐰',
+    gifUrl: 'https://media.tenor.com/ROmTAoP9n8oAAAAi/sappy-seals-sappy.gif',
+    fallbackEmoji: '🦭',
   },
 };
 
@@ -32,6 +32,9 @@ const CharacterAnimation = ({ characterType = 'panda', className = '' }) => {
 
   // Show fallback if no lottie URL or if lottie failed to load
   const showFallback = !character.lottieUrl || lottieError;
+
+  // Check if it's a GIF character
+  const isGif = character.gifUrl;
 
   return (
     <div className={`character-container bounce-soft ${className}`}>
@@ -47,6 +50,14 @@ const CharacterAnimation = ({ characterType = 'panda', className = '' }) => {
             }
           }}
         />
+      ) : isGif ? (
+        <div className="w-full h-full flex items-center justify-center">
+          <img 
+            src={character.gifUrl} 
+            alt={character.name}
+            className="w-full h-full object-contain rounded-2xl"
+          />
+        </div>
       ) : (
         <div className="w-full h-full flex items-center justify-center">
           {character.fallbackImage ? (
