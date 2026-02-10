@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import CharacterAnimation from './CharacterAnimation';
@@ -11,6 +11,8 @@ const noButtonTexts = [
   'Think again!',
   'Wrong button!',
   'Try again!',
+  'Nope, try Yes!',
+  'Oops!',
 ];
 
 const ProposalCard = ({ valentineName, customMessage, characterChoice, onAccept }) => {
@@ -22,47 +24,57 @@ const ProposalCard = ({ valentineName, customMessage, characterChoice, onAccept 
   const [showNoButton, setShowNoButton] = useState(true);
   const cardRef = useRef(null);
 
+  // Get random text excluding current text
+  const getRandomText = useCallback(() => {
+    const availableTexts = noButtonTexts.filter(text => text !== noButtonText);
+    return availableTexts[Math.floor(Math.random() * availableTexts.length)];
+  }, [noButtonText]);
+
+  // Move No button to random position
   const moveNoButton = useCallback(() => {
     if (!cardRef.current || noAttempts >= 3) return;
 
     const card = cardRef.current.getBoundingClientRect();
-    const buttonWidth = 100;
-    const buttonHeight = 48;
-    const padding = 20;
+    const buttonWidth = 120;
+    const buttonHeight = 50;
+    const padding = 30;
 
     // Calculate random position within card bounds
-    const maxX = card.width - buttonWidth - padding * 2;
-    const maxY = card.height - buttonHeight - padding * 2;
+    const maxX = (card.width / 2) - buttonWidth - padding;
+    const maxY = 150; // Keep it in reasonable vertical range
 
-    const newX = Math.random() * maxX - maxX / 2;
-    const newY = Math.random() * maxY - maxY / 2;
+    const newX = (Math.random() * maxX * 2) - maxX;
+    const newY = (Math.random() * maxY);
 
     setNoButtonPosition({ x: newX, y: newY });
   }, [noAttempts]);
 
+  // Handle hover - just move the button
   const handleNoHover = () => {
     moveNoButton();
   };
 
+  // Handle touch - move the button
   const handleNoTouch = (e) => {
     e.preventDefault();
     moveNoButton();
   };
 
+  // Handle click - do ALL the mischievous things randomly
   const handleNoClick = () => {
     const newAttempts = noAttempts + 1;
     setNoAttempts(newAttempts);
 
-    // Change text
-    setNoButtonText(noButtonTexts[Math.min(newAttempts, noButtonTexts.length - 1)]);
+    // ALWAYS change the text to something funny
+    setNoButtonText(getRandomText());
 
-    // Grow Yes button
+    // ALWAYS grow the Yes button by 20%
     setYesScale(1 + newAttempts * 0.2);
 
-    // Move button
+    // ALWAYS move the button to a new random position
     moveNoButton();
 
-    // Hide after 3 attempts
+    // Hide after 3 attempts (The Vanishing Act)
     if (newAttempts >= 3) {
       setTimeout(() => setShowNoButton(false), 300);
     }
@@ -130,7 +142,7 @@ const ProposalCard = ({ valentineName, customMessage, characterChoice, onAccept 
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
       className="valentine-card p-8 md:p-12 max-w-md w-full mx-auto text-center relative overflow-visible"
-      style={{ minHeight: '500px' }}
+      style={{ minHeight: '550px' }}
     >
       <AnimatePresence mode="wait">
         {!accepted ? (
@@ -161,48 +173,58 @@ const ProposalCard = ({ valentineName, customMessage, characterChoice, onAccept 
             </div>
 
             {/* Buttons Container */}
-            <div className="relative w-full mt-8" style={{ minHeight: '120px' }}>
-              {/* Yes Button */}
+            <div className="relative w-full mt-8 flex flex-col items-center" style={{ minHeight: '180px' }}>
+              {/* Yes Button - grows with each No attempt */}
               <motion.button
                 data-testid="yes-button"
                 onClick={handleYesClick}
                 animate={{ scale: yesScale }}
                 transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                className="valentine-btn-yes py-3 px-8 text-lg md:text-xl pulse-glow"
+                className="valentine-btn-yes py-3 px-8 text-lg md:text-xl pulse-glow z-10"
                 style={{ 
                   transformOrigin: 'center',
-                  zIndex: 10,
                 }}
               >
                 Yes! <Heart className="inline ml-1" size={20} />
               </motion.button>
 
-              {/* No Button */}
+              {/* No Button - mischievous behavior */}
               <AnimatePresence>
                 {showNoButton && (
                   <motion.button
                     data-testid="no-button"
                     initial={{ opacity: 1 }}
-                    exit={{ opacity: 0, scale: 0 }}
+                    exit={{ opacity: 0, scale: 0, rotate: 180 }}
                     animate={{ 
                       x: noButtonPosition.x, 
-                      y: noButtonPosition.y,
-                      scale: Math.max(0.7, 1 - noAttempts * 0.1)
+                      y: noButtonPosition.y + 70,
+                      scale: Math.max(0.6, 1 - noAttempts * 0.1)
                     }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                     onClick={handleNoClick}
                     onMouseEnter={handleNoHover}
                     onTouchStart={handleNoTouch}
-                    className="valentine-btn-no py-3 px-8 text-lg md:text-xl absolute left-1/2 top-16"
+                    className="valentine-btn-no py-3 px-8 text-lg md:text-xl absolute"
                     style={{ 
-                      marginLeft: '60px',
                       zIndex: 5,
+                      cursor: 'pointer',
                     }}
                   >
                     {noButtonText}
                   </motion.button>
                 )}
               </AnimatePresence>
+
+              {/* Show hint after No button disappears */}
+              {!showNoButton && (
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-gray-400 text-sm mt-20 font-body"
+                >
+                  There's only one choice now... 💕
+                </motion.p>
+              )}
             </div>
           </motion.div>
         ) : (

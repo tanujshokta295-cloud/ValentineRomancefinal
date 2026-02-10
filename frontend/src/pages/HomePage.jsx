@@ -10,18 +10,11 @@ import { Textarea } from '../components/ui/textarea';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import FloatingHearts from '../components/FloatingHearts';
-import { Player } from '@lottiefiles/react-lottie-player';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 const characterOptions = [
-  {
-    id: 'panda',
-    name: 'Cute Panda',
-    lottieUrl: 'https://lottie.host/e1e68e5a-44a5-4a8e-8c1e-90f4f239f60f/BKqAJ58qKQ.json',
-    emoji: '🐼',
-  },
   {
     id: 'bear',
     name: 'Couple Teddy',
@@ -32,7 +25,7 @@ const characterOptions = [
     id: 'seal',
     name: 'Sappy Seals',
     emoji: '🦭',
-    image: 'https://media.tenor.com/H8oJvzwt1bMAAAAj/sappy-seals.gif',
+    image: 'https://customer-assets.emergentagent.com/job_cutematch-1/artifacts/6uhb61yp_sappy-seals.gif',
   },
 ];
 
@@ -40,7 +33,7 @@ const HomePage = () => {
   const navigate = useNavigate();
   const [valentineName, setValentineName] = useState('');
   const [customMessage, setCustomMessage] = useState('');
-  const [selectedCharacter, setSelectedCharacter] = useState('panda');
+  const [selectedCharacter, setSelectedCharacter] = useState('bear');
   const [isLoading, setIsLoading] = useState(false);
   const [generatedLink, setGeneratedLink] = useState('');
 
@@ -165,7 +158,7 @@ const HomePage = () => {
                     <Label className="font-body font-semibold text-gray-700">
                       Choose a Character
                     </Label>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 gap-4">
                       {characterOptions.map((char) => (
                         <motion.button
                           key={char.id}
@@ -174,29 +167,18 @@ const HomePage = () => {
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={() => setSelectedCharacter(char.id)}
-                          className={`p-3 rounded-2xl border-2 transition-all ${
+                          className={`p-4 rounded-2xl border-2 transition-all ${
                             selectedCharacter === char.id
                               ? 'border-[#FF4D6D] bg-pink-50 shadow-md'
                               : 'border-pink-100 bg-white hover:border-pink-200'
                           }`}
                         >
-                          <div className="w-16 h-16 mx-auto mb-2 flex items-center justify-center overflow-hidden rounded-xl">
-                            {char.lottieUrl ? (
-                              <Player
-                                autoplay
-                                loop
-                                src={char.lottieUrl}
-                                style={{ width: '100%', height: '100%' }}
-                              />
-                            ) : char.image ? (
-                              <img 
-                                src={char.image} 
-                                alt={char.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <span className="text-4xl">{char.emoji}</span>
-                            )}
+                          <div className="w-20 h-20 mx-auto mb-2 flex items-center justify-center overflow-hidden rounded-xl">
+                            <img 
+                              src={char.image} 
+                              alt={char.name}
+                              className="w-full h-full object-cover"
+                            />
                           </div>
                           <span className="font-body text-sm text-gray-600 font-medium">
                             {char.name}
@@ -281,7 +263,7 @@ const HomePage = () => {
                       setGeneratedLink('');
                       setValentineName('');
                       setCustomMessage('');
-                      setSelectedCharacter('panda');
+                      setSelectedCharacter('bear');
                     }}
                     data-testid="create-another-btn"
                     variant="ghost"

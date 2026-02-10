@@ -2,12 +2,6 @@ import { useState } from 'react';
 import { Player } from '@lottiefiles/react-lottie-player';
 
 const characters = {
-  panda: {
-    name: 'Cute Panda',
-    lottieUrl: 'https://lottie.host/e1e68e5a-44a5-4a8e-8c1e-90f4f239f60f/BKqAJ58qKQ.json',
-    fallbackImage: null,
-    fallbackEmoji: '🐼',
-  },
   bear: {
     name: 'Couple Teddy',
     lottieUrl: null,
@@ -17,14 +11,14 @@ const characters = {
   seal: {
     name: 'Sappy Seals',
     lottieUrl: null,
-    gifUrl: 'https://media.tenor.com/H8oJvzwt1bMAAAAj/sappy-seals.gif',
+    gifUrl: 'https://customer-assets.emergentagent.com/job_cutematch-1/artifacts/6uhb61yp_sappy-seals.gif',
     fallbackEmoji: '🦭',
   },
 };
 
-const CharacterAnimation = ({ characterType = 'panda', className = '' }) => {
+const CharacterAnimation = ({ characterType = 'bear', className = '' }) => {
   const [lottieError, setLottieError] = useState(false);
-  const character = characters[characterType] || characters.panda;
+  const character = characters[characterType] || characters.bear;
 
   const handleLottieError = () => {
     setLottieError(true);
