@@ -150,7 +150,7 @@ async def create_payment_order(input: PaymentOrderCreate):
         
         # Create Razorpay order
         order_data = {
-            "amount": PAYMENT_AMOUNT,
+            "amount": current_price,
             "currency": "INR",
             "receipt": f"proposal_{proposal_id[:8]}",
             "notes": {
@@ -165,7 +165,7 @@ async def create_payment_order(input: PaymentOrderCreate):
         await db.payments.insert_one({
             "order_id": razorpay_order["id"],
             "proposal_id": proposal_id,
-            "amount": PAYMENT_AMOUNT,
+            "amount": current_price,
             "currency": "INR",
             "status": "created",
             "created_at": created_at
@@ -173,7 +173,7 @@ async def create_payment_order(input: PaymentOrderCreate):
         
         return PaymentOrderResponse(
             order_id=razorpay_order["id"],
-            amount=PAYMENT_AMOUNT,
+            amount=current_price,
             currency="INR",
             key_id=os.environ['RAZORPAY_KEY_ID'],
             proposal_id=proposal_id
