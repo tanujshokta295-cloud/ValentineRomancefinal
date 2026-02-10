@@ -142,7 +142,7 @@ const ProposalCard = ({ valentineName, customMessage, characterChoice, onAccept 
             className="flex flex-col items-center gap-6"
           >
             {/* Character Animation */}
-            <CharacterAnimation characterChoice={characterChoice} />
+            <CharacterAnimation characterType={characterChoice} />
 
             {/* Question Text */}
             <div className="space-y-2">
@@ -214,7 +214,7 @@ const ProposalCard = ({ valentineName, customMessage, characterChoice, onAccept 
             className="flex flex-col items-center gap-6 py-8"
           >
             {/* Celebration Character */}
-            <CharacterAnimation characterChoice={characterChoice} />
+            <CharacterAnimation characterType={characterChoice} />
 
             {/* Success Message */}
             <div className="space-y-4">
