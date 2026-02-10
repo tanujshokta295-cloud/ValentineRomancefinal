@@ -1,4 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -13,35 +14,54 @@ import razorpay
 import hmac
 import hashlib
 
+# Configure logging first
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env', override=False)
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# Create the main app
+app = FastAPI(title="Valentine Proposal API")
 
-# Razorpay client
-razorpay_client = razorpay.Client(
-    auth=(os.environ['RAZORPAY_KEY_ID'], os.environ['RAZORPAY_KEY_SECRET'])
+# Add CORS middleware FIRST
+app.add_middleware(
+    CORSMiddleware,
+    allow_credentials=True,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# Create the main app without a prefix
-app = FastAPI()
-
-# Create a router with the /api prefix
-api_router = APIRouter(prefix="/api")
-
-# Health check endpoint (required for Kubernetes)
+# Health check endpoints - MUST be before other routes
 @app.get("/health")
 async def health_check():
-    """Health check endpoint for Kubernetes"""
-    return {"status": "healthy"}
+    """Health check endpoint for Kubernetes - returns 200 OK"""
+    return JSONResponse(content={"status": "healthy"}, status_code=200)
 
 @app.get("/api/health")
 async def api_health_check():
     """Health check endpoint under /api prefix"""
-    return {"status": "healthy"}
+    return JSONResponse(content={"status": "healthy"}, status_code=200)
+
+# MongoDB connection
+mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+db_name = os.environ.get('DB_NAME', 'valentine_db')
+client = AsyncIOMotorClient(mongo_url)
+db = client[db_name]
+
+# Razorpay client
+razorpay_key_id = os.environ.get('RAZORPAY_KEY_ID', '')
+razorpay_key_secret = os.environ.get('RAZORPAY_KEY_SECRET', '')
+razorpay_client = None
+if razorpay_key_id and razorpay_key_secret:
+    razorpay_client = razorpay.Client(auth=(razorpay_key_id, razorpay_key_secret))
+
+# Create a router with the /api prefix
+api_router = APIRouter(prefix="/api")
 
 # Define Models
 class ProposalCreate(BaseModel):
@@ -92,38 +112,44 @@ class StatusCheck(BaseModel):
 class StatusCheckCreate(BaseModel):
     client_name: str
 
-# Payment amount in paise (₹249 = 24900 paise, approximately $2.99)
-# This will be fetched from database settings
-DEFAULT_PAYMENT_AMOUNT = 24900  # ₹249
+# Payment amount in paise (default ₹149 = 14900 paise)
+DEFAULT_PAYMENT_AMOUNT = 14900
 
 # Settings endpoints
 @api_router.get("/settings/pricing")
 async def get_pricing():
     """Get current pricing settings"""
-    settings = await db.settings.find_one({"key": "pricing"}, {"_id": 0})
-    if not settings:
-        # Create default settings
-        default_settings = {
-            "key": "pricing",
-            "amount": DEFAULT_PAYMENT_AMOUNT,
-            "currency": "INR",
-            "display_price": "₹249"
+    try:
+        settings = await db.settings.find_one({"key": "pricing"}, {"_id": 0})
+        if not settings:
+            default_settings = {
+                "key": "pricing",
+                "amount": DEFAULT_PAYMENT_AMOUNT,
+                "currency": "INR",
+                "display_price": "₹149"
+            }
+            await db.settings.insert_one(default_settings)
+            return {
+                "amount": DEFAULT_PAYMENT_AMOUNT,
+                "currency": "INR",
+                "display_price": "₹149"
+            }
+        return {
+            "amount": settings.get("amount", DEFAULT_PAYMENT_AMOUNT),
+            "currency": settings.get("currency", "INR"),
+            "display_price": settings.get("display_price", "₹149")
         }
-        await db.settings.insert_one(default_settings)
+    except Exception as e:
+        logger.error(f"Error getting pricing: {e}")
         return {
             "amount": DEFAULT_PAYMENT_AMOUNT,
             "currency": "INR",
-            "display_price": "₹249"
+            "display_price": "₹149"
         }
-    return {
-        "amount": settings.get("amount", DEFAULT_PAYMENT_AMOUNT),
-        "currency": settings.get("currency", "INR"),
-        "display_price": settings.get("display_price", "₹249")
-    }
 
 @api_router.post("/settings/pricing")
 async def update_pricing(amount: int, display_price: str):
-    """Update pricing - amount in paise (e.g., 24900 for ₹249)"""
+    """Update pricing - amount in paise (e.g., 14900 for ₹149)"""
     await db.settings.update_one(
         {"key": "pricing"},
         {"$set": {
@@ -139,20 +165,24 @@ async def update_pricing(amount: int, display_price: str):
 
 async def get_current_price():
     """Helper to get current price from settings"""
-    settings = await db.settings.find_one({"key": "pricing"}, {"_id": 0})
-    if settings:
-        return settings.get("amount", DEFAULT_PAYMENT_AMOUNT)
+    try:
+        settings = await db.settings.find_one({"key": "pricing"}, {"_id": 0})
+        if settings:
+            return settings.get("amount", DEFAULT_PAYMENT_AMOUNT)
+    except Exception:
+        pass
     return DEFAULT_PAYMENT_AMOUNT
 
 # Payment endpoints
 @api_router.post("/payments/create-order", response_model=PaymentOrderResponse)
 async def create_payment_order(input: PaymentOrderCreate):
     """Create a Razorpay order and a pending proposal"""
+    if not razorpay_client:
+        raise HTTPException(status_code=500, detail="Payment gateway not configured")
+    
     try:
-        # Get current price from settings
         current_price = await get_current_price()
         
-        # Create proposal first (unpaid)
         proposal_id = str(uuid.uuid4())
         created_at = datetime.now(timezone.utc).isoformat()
         
@@ -170,7 +200,6 @@ async def create_payment_order(input: PaymentOrderCreate):
         
         await db.proposals.insert_one(proposal_doc)
         
-        # Create Razorpay order
         order_data = {
             "amount": current_price,
             "currency": "INR",
@@ -183,7 +212,6 @@ async def create_payment_order(input: PaymentOrderCreate):
         
         razorpay_order = razorpay_client.order.create(data=order_data)
         
-        # Store order info
         await db.payments.insert_one({
             "order_id": razorpay_order["id"],
             "proposal_id": proposal_id,
@@ -197,24 +225,22 @@ async def create_payment_order(input: PaymentOrderCreate):
             order_id=razorpay_order["id"],
             amount=current_price,
             currency="INR",
-            key_id=os.environ['RAZORPAY_KEY_ID'],
+            key_id=razorpay_key_id,
             proposal_id=proposal_id
         )
         
     except Exception as e:
-        logging.error(f"Error creating payment order: {str(e)}")
+        logger.error(f"Error creating payment order: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to create payment order: {str(e)}")
 
 @api_router.post("/payments/verify")
 async def verify_payment(input: PaymentVerify):
     """Verify Razorpay payment signature and activate proposal"""
     try:
-        # Verify signature
         message = f"{input.razorpay_order_id}|{input.razorpay_payment_id}"
-        secret = os.environ['RAZORPAY_KEY_SECRET']
         
         generated_signature = hmac.new(
-            secret.encode(),
+            razorpay_key_secret.encode(),
             message.encode(),
             hashlib.sha256
         ).hexdigest()
@@ -222,7 +248,6 @@ async def verify_payment(input: PaymentVerify):
         if generated_signature != input.razorpay_signature:
             raise HTTPException(status_code=400, detail="Invalid payment signature")
         
-        # Update payment record
         await db.payments.update_one(
             {"order_id": input.razorpay_order_id},
             {"$set": {
@@ -233,7 +258,6 @@ async def verify_payment(input: PaymentVerify):
             }}
         )
         
-        # Activate the proposal
         await db.proposals.update_one(
             {"id": input.proposal_id},
             {"$set": {
@@ -243,7 +267,6 @@ async def verify_payment(input: PaymentVerify):
             }}
         )
         
-        # Get the proposal
         proposal = await db.proposals.find_one({"id": input.proposal_id}, {"_id": 0})
         
         return {
@@ -256,13 +279,13 @@ async def verify_payment(input: PaymentVerify):
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"Error verifying payment: {str(e)}")
+        logger.error(f"Error verifying payment: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to verify payment: {str(e)}")
 
 # Proposal endpoints
 @api_router.post("/proposals", response_model=ProposalResponse)
 async def create_proposal(input: ProposalCreate):
-    """Create a free proposal (for testing/backwards compatibility)"""
+    """Create a proposal"""
     proposal_id = str(uuid.uuid4())
     created_at = datetime.now(timezone.utc).isoformat()
     
@@ -274,7 +297,7 @@ async def create_proposal(input: ProposalCreate):
         "created_at": created_at,
         "accepted": None,
         "accepted_at": None,
-        "paid": True  # Mark as paid for backwards compatibility
+        "paid": True
     }
     
     await db.proposals.insert_one(doc)
@@ -321,7 +344,7 @@ async def update_proposal(proposal_id: str, update: ProposalUpdate):
 @api_router.get("/proposals", response_model=List[ProposalResponse])
 async def list_proposals(page: int = 1, limit: int = 50):
     """List proposals with pagination"""
-    limit = min(limit, 100)  # Max 100 per page
+    limit = min(limit, 100)
     skip = (page - 1) * limit
     proposals = await db.proposals.find({}, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     return [ProposalResponse(**p) for p in proposals]
@@ -339,13 +362,13 @@ async def create_status_check(input: StatusCheckCreate):
     doc = status_obj.model_dump()
     doc['timestamp'] = doc['timestamp'].isoformat()
     
-    _ = await db.status_checks.insert_one(doc)
+    await db.status_checks.insert_one(doc)
     return status_obj
 
 @api_router.get("/status", response_model=List[StatusCheck])
 async def get_status_checks(page: int = 1, limit: int = 50):
     """Get status checks with pagination"""
-    limit = min(limit, 100)  # Max 100 per page
+    limit = min(limit, 100)
     skip = (page - 1) * limit
     status_checks = await db.status_checks.find({}, {"_id": 0}).sort("timestamp", -1).skip(skip).limit(limit).to_list(limit)
     
@@ -357,21 +380,6 @@ async def get_status_checks(page: int = 1, limit: int = 50):
 
 # Include the router in the main app
 app.include_router(api_router)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
