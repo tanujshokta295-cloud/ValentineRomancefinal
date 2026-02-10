@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -10,7 +10,6 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import FloatingHearts from '../components/FloatingHearts';
 import ProposalCard from '../components/ProposalCard';
-import useRazorpay from 'react-razorpay';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -34,9 +33,22 @@ const characterOptions = [
 const PRICE_INR = 249;
 const PRICE_DISPLAY = "₹249";
 
+// Load Razorpay script dynamically
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    if (window.Razorpay) {
+      resolve(true);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
+
 const HomePage = () => {
-  const [Razorpay] = useRazorpay();
-  
   // Form state
   const [valentineName, setValentineName] = useState('');
   const [customMessage, setCustomMessage] = useState('');
@@ -44,7 +56,6 @@ const HomePage = () => {
   
   // Flow state
   const [step, setStep] = useState('form'); // 'form' | 'preview' | 'success'
-  const [isLoading, setIsLoading] = useState(false);
   const [generatedLink, setGeneratedLink] = useState('');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
@@ -59,9 +70,17 @@ const HomePage = () => {
     setStep('preview');
   };
 
-  const handlePayment = async () => {
+  const handlePayment = useCallback(async () => {
     setIsProcessingPayment(true);
     
+    // Load Razorpay script
+    const scriptLoaded = await loadRazorpayScript();
+    if (!scriptLoaded) {
+      toast.error('Failed to load payment gateway. Please try again.');
+      setIsProcessingPayment(false);
+      return;
+    }
+
     try {
       // Step 1: Create order on backend
       const orderResponse = await axios.post(`${API}/payments/create-order`, {
@@ -94,11 +113,13 @@ const HomePage = () => {
               const link = `${window.location.origin}/proposal/${proposal_id}`;
               setGeneratedLink(link);
               setStep('success');
+              setIsProcessingPayment(false);
               toast.success('Payment successful! Your link is ready! 🎉');
             }
           } catch (verifyError) {
             console.error('Payment verification failed:', verifyError);
             toast.error('Payment verification failed. Please contact support.');
+            setIsProcessingPayment(false);
           }
         },
         prefill: {
@@ -117,7 +138,7 @@ const HomePage = () => {
         }
       };
 
-      const razorpayInstance = new Razorpay(options);
+      const razorpayInstance = new window.Razorpay(options);
       razorpayInstance.on('payment.failed', (response) => {
         console.error('Payment failed:', response.error);
         toast.error(`Payment failed: ${response.error.description}`);
@@ -131,7 +152,7 @@ const HomePage = () => {
       toast.error('Failed to initiate payment. Please try again.');
       setIsProcessingPayment(false);
     }
-  };
+  }, [valentineName, customMessage, selectedCharacter]);
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(generatedLink);
